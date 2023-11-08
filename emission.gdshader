@@ -1,8 +1,6 @@
 shader_type spatial;
 render_mode blend_mix;
 
-// Define a uniform for base emission energy
-uniform float base_emission_energy : hint_range(0, 10) = 1.0;
 varying vec3 v_custom_emission;
 
 void vertex() {
