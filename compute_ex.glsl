@@ -25,6 +25,9 @@ layout(set = 0, binding = 4, std430) buffer Debug {
     float debug[];
 };
 
+layout(set = 0, binding = 5, std430) buffer Ex_in {
+    float ex_in[];
+};
 
 // The code we want to execute in each invocation
 void main() {
@@ -43,6 +46,7 @@ void main() {
     float p = 0;
 
     int idx = x*h*l + y*l + z;
+    int adj_idx;
 
     if(idx < w*h*l)
     {
@@ -76,7 +80,9 @@ void main() {
                     if(i==0 && j==0 && k==0){ continue; }
 
                     c_strength = connections[c_group + (i+1)*9 + (j+1)*3 + k+1]; 
-                    s_val = spike[(x+i)*h*l + (y+j)*l + (z+k)]; 
+                    adj_idx = (x+i)*h*l + (y+j)*l + (z+k);
+                    s_val = spike[adj_idx] * ex_in[adj_idx]; 
+                    //s_val = spike[adj_idx];
                     p += c_strength*s_val;
                 }
             }

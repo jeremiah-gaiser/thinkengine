@@ -18,9 +18,9 @@ var h: int
 var l: int
 
 var connection_count: int = 27
-var connection_u = 0.1
-var connection_s = 0.15
-var threshold = 0.73
+var connection_u = 0.11
+var connection_s = 0.2
+var threshold = 0.6
 
 func identity(a):
 	return 
@@ -40,10 +40,10 @@ func generate_buffer(size, init_function: Callable=Callable(self, "identity")) -
 	return rd.storage_buffer_create(bytes.size(), bytes)	
 
 func initialize_spike_state(a):
-	for i in range(10):
-		var rx = randi()%29
-		var ry = randi()%29
-		a[rx*900 + ry*90] = 2
+	for i in range(500):
+		var rx = randi()%(w-1)
+		var ry = randi()%(h-1)
+		a[rx*h*l + ry*l] = 2
 		
 func initialize_variables_buffer(a):
 	a[0] = w
@@ -53,11 +53,11 @@ func initialize_variables_buffer(a):
 	a[4] = threshold
 	
 func initialize_connections(a):
-	for cell_idx in range(w*h*l):
+	for cell_idx in range(matrix_size):
 		for i in range(3):
 			for j in range(3):
 				for k in range(3):
-					a[cell_idx*27 + i*9 + j*3 + k] = clamp(randfn(connection_u, connection_s),0,1)
+					a[cell_idx*27 + i*9 + j*3 + k] = randfn(connection_u, connection_s)
 						
 
 func collect_uniforms(buffer_a):
@@ -67,6 +67,14 @@ func collect_uniforms(buffer_a):
 		output_a.append(new_uniform(b, uniform_idx))
 		uniform_idx += 1
 	return output_a
+	
+func initialize_excit_inhib(a):
+	for c_i in range(len(a)):
+		if randf() < 0.7:
+			a[c_i] = 1
+		else:
+			a[c_i] = -1
+	print(a)
 
 # Called when the node enters the scene tree for the first time.
 func _init(width: int, height: int, length: int):
@@ -90,8 +98,10 @@ func _init(width: int, height: int, length: int):
 	var connections_buffer := generate_buffer(matrix_size * connection_count, Callable(self, 'initialize_connections'))
 	var variables_buffer := generate_buffer(5, Callable(self, 'initialize_variables_buffer'))
 	debug_buffer = generate_buffer(8)
+	var excit_inhib_buffer = generate_buffer(matrix_size, Callable(self, 'initialize_excit_inhib'))
+	var uniform_array = [potential_buffer, spike_buffer, connections_buffer, variables_buffer, debug_buffer, excit_inhib_buffer]
 	
-	uniform_set = rd.uniform_set_create(collect_uniforms([potential_buffer, spike_buffer, connections_buffer, variables_buffer, debug_buffer]), shader, 0)
+	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 
 func step():	
@@ -100,7 +110,7 @@ func step():
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
 	
-	rd.compute_list_dispatch(compute_list, 5, 5, 5)
+	rd.compute_list_dispatch(compute_list, 2, 2, 2)
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()
@@ -109,7 +119,6 @@ func step():
 	# Read back the data from the buffer
 	output_bytes = rd.buffer_get_data(spike_buffer)
 	output = output_bytes.to_float32_array()
-	print(rd.buffer_get_data(debug_buffer).to_float32_array())
 	
 	
 	return output
