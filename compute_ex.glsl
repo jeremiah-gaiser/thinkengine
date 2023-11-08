@@ -40,6 +40,7 @@ void main() {
     float threshold = variables[4];
     float c_strength;
     float s_val;
+    float p = 0;
 
     int idx = x*h*l + y*l + z;
 
@@ -76,10 +77,12 @@ void main() {
 
                     c_strength = connections[c_group + (i+1)*9 + (j+1)*3 + k+1]; 
                     s_val = spike[(x+i)*h*l + (y+j)*l + (z+k)]; 
-                    potential[idx] += s_val;
+                    p += c_strength*s_val;
                 }
             }
         }
+
+        potential[idx] = p;
     }
 }
 

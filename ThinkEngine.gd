@@ -18,8 +18,9 @@ var h: int
 var l: int
 
 var connection_count: int = 27
-var connection_u = 0.01
-var connection_s = 0.25
+var connection_u = 0.1
+var connection_s = 0.15
+var threshold = 0.73
 
 func identity(a):
 	return 
@@ -39,21 +40,25 @@ func generate_buffer(size, init_function: Callable=Callable(self, "identity")) -
 	return rd.storage_buffer_create(bytes.size(), bytes)	
 
 func initialize_spike_state(a):
-	for i in range(1):
-		var rx = randi()%10
-		var ry = randi()%10
-		a[rx*100 + ry*10] = 1
+	for i in range(10):
+		var rx = randi()%29
+		var ry = randi()%29
+		a[rx*900 + ry*90] = 2
 		
 func initialize_variables_buffer(a):
 	a[0] = w
 	a[1] = h
 	a[2] = l
 	a[3] = connection_count
-	a[4] = 1
+	a[4] = threshold
 	
 func initialize_connections(a):
-	for i in range(w*h*l*connection_count):
-		a[i] = clamp(randfn(connection_u, connection_s),0,2)
+	for cell_idx in range(w*h*l):
+		for i in range(3):
+			for j in range(3):
+				for k in range(3):
+					a[cell_idx*27 + i*9 + j*3 + k] = clamp(randfn(connection_u, connection_s),0,1)
+						
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -95,7 +100,7 @@ func step():
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
 	
-	rd.compute_list_dispatch(compute_list, 3, 3, 3)
+	rd.compute_list_dispatch(compute_list, 5, 5, 5)
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()

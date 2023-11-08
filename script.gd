@@ -1,6 +1,6 @@
 extends Node3D
 
-var grid_size: Vector3 = Vector3(30, 30, 30)
+var grid_size: Vector3 = Vector3(40, 40, 40)
 var voxel_size: float = 0.05
 var multi_mesh: MultiMesh
 var multi_mesh_instance: MultiMeshInstance3D
@@ -73,7 +73,7 @@ func _process(d):
 	frame_count += 1
 	
 	#if frame_count % 10 != 0:
-#		return
+	#	return
 	
 	think_out = think_engine.step()
 	update_cells(think_out)
