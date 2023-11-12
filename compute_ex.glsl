@@ -29,6 +29,10 @@ layout(set = 0, binding = 5, std430) buffer Ex_in {
     float ex_in[];
 };
 
+layout(set = 0, binding = 6, std430) buffer Stimulus {
+    float stimulus[];
+};
+
 // The code we want to execute in each invocation
 void main() {
     int x = int(gl_GlobalInvocationID.x);
@@ -48,7 +52,7 @@ void main() {
     int idx = x*h*l + y*l + z;
     int adj_idx;
 
-    if(idx < w*h*l)
+    if(idx < w*h*l && z > 0)
     {
         int c_group = x*h*l*c + y*l*c + z*c;
         int c_i;
@@ -89,6 +93,10 @@ void main() {
         }
 
         potential[idx] = p;
+    }
+    else
+    {
+        spike[idx] = stimulus[x*l + y];
     }
 }
 

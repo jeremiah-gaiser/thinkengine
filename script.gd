@@ -1,6 +1,6 @@
 extends Node3D
 
-var grid_size: Vector3 = Vector3(20, 20, 20)
+var grid_size: Vector3 = Vector3(30, 30, 30) 
 var voxel_size: float = 0.05
 var multi_mesh: MultiMesh
 var multi_mesh_instance: MultiMeshInstance3D
@@ -17,6 +17,7 @@ func _ready():
 	setup_multi_mesh()
 	generate_voxel_grid()
 	think_engine = ThinkEngine.new(grid_size.x, grid_size.y, grid_size.z)
+	$Control/Threshold.set_value_no_signal(think_engine.threshold)
 	update_cells(think_engine.get_spike_state())
 	
 func setup_multi_mesh():
@@ -77,5 +78,12 @@ func _process(d):
 	
 	think_out = think_engine.step()
 	update_cells(think_out)
-	
 
+func _on_button_pressed():
+	think_engine.update_stimulus()
+	pass # Replace with function body.
+
+func _on_threshold_value_changed(value):
+	think_engine.update_threshold(value)
+	print(value)
+	pass # Replace with function body.
