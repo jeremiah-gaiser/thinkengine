@@ -4,6 +4,7 @@ var rd: RenderingDevice
 var potential_buffer: RID
 var debug_buffer: RID
 var spike_buffer: RID
+var connections_values: PackedFloat32Array
 var connections_buffer: RID
 var stimulus_buffer: RID
 var compute_list: int
@@ -15,18 +16,22 @@ var matrix_size: int
 var worker_dims: int
 var uniform_array: Array
 var shader: RID
+var response_values: PackedFloat32Array
+var stimulus_values: PackedFloat32Array
+var score: float = 0.0
 
 var variables_buffer: RID
 var excit_inhib_buffer: RID
+var pr_ratio = 0.1
 
 var w: int
 var h: int
 var l: int
 
 var connection_count: int = 27
-var connection_u = 0.11
-var connection_s = 0.2
-var threshold = 0.55
+var connection_u = 0.05
+var connection_s = 0.3
+var threshold = 0.25
 
 func identity(a):
 	return 
@@ -37,6 +42,7 @@ func new_uniform(buffer, binding_index) -> RDUniform:
 	uniform1.binding = binding_index
 	uniform1.add_id(buffer)
 	return uniform1
+	
 	
 func generate_buffer(size, init_function: Callable=Callable(self, "identity")) -> RID:
 	var a := PackedFloat32Array()
@@ -53,12 +59,28 @@ func initialize_variables_buffer(a):
 	a[4] = threshold
 	
 func initialize_connections(a):
+	var rand_con: float
+	var con_idx: int
 	for cell_idx in range(matrix_size):
 		for i in range(3):
 			for j in range(3):
 				for k in range(3):
-					a[cell_idx*27 + i*9 + j*3 + k] = randfn(connection_u, connection_s)
-						
+					rand_con = randfn(connection_u, connection_s)
+					con_idx = cell_idx*27 + i*9 + j*3 + k
+					a[con_idx] = rand_con
+					connections_values[con_idx] = rand_con
+					
+func get_score():
+	score = 0
+	
+	for i in range(len(stimulus_values)):
+		if response_values[i] > 0:
+			if stimulus_values[i] > 0:
+				score += 1
+			else:
+				score -= pr_ratio
+				
+	return score
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -77,8 +99,10 @@ func initialize_excit_inhib(a):
 	print(a)
 	
 func initialize_stimulus(a):
-	var x = [0,2][randi()%2]
-	var y = [0,2][randi()%2]
+	var x = randi()%3
+	var y = randi()%3
+	stimulus_values.fill(0)
+	stimulus_values[x*h + y] = 1.0
 	a[x*h + y] = 2
 
 func update_buffer(new_buffer, uniform_array_idx):
@@ -94,6 +118,7 @@ func update_threshold(new_val):
 	threshold = new_val
 	variables_buffer = generate_buffer(5, Callable(self, 'initialize_variables_buffer'))
 	update_buffer(variables_buffer, 3)
+	
 	
 # Called when the node enters the scene tree for the first time.
 func _init(width: int, height: int, length: int):
@@ -111,6 +136,10 @@ func _init(width: int, height: int, length: int):
 
 	# Prepare our data. We use floats in the shader, so we need 32 bit.
 	matrix_size = w*h*l
+	
+	response_values.resize(w*h)
+	stimulus_values.resize(w*h)
+	connections_values.resize(matrix_size * connection_count)
 	
 	potential_buffer = generate_buffer(matrix_size)
 	spike_buffer = generate_buffer(matrix_size)
@@ -145,6 +174,12 @@ func step():
 	# Read back the data from the buffer
 	output_bytes = rd.buffer_get_data(spike_buffer)
 	output = output_bytes.to_float32_array()
+	
+	for i in range(w):
+		for j in range(h):
+			response_values[i*h + j] = output[i*h*l + j*l + l-1]
+	
+	print(get_score())
 	
 	return output
 

@@ -87,7 +87,7 @@ void main() {
                     adj_idx = (x+i)*h*l + (y+j)*l + (z+k);
                     s_val = spike[adj_idx] * ex_in[adj_idx]; 
                     //s_val = spike[adj_idx];
-                    p += c_strength*s_val;
+                    p += tanh(c_strength)*s_val;
                 }
             }
         }
