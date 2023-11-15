@@ -2,7 +2,7 @@
 #version 450
 
 // Invocations in the (x, y, z) dimension
-layout(local_size_x = 10, local_size_y = 10, local_size_z=10) in;
+layout(local_size_x = 3, local_size_y = 3, local_size_z=3) in;
 
 
 layout(set = 0, binding = 0, std430) buffer Potential {

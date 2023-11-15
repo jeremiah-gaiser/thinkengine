@@ -77,8 +77,9 @@ func initialize_excit_inhib(a):
 	print(a)
 	
 func initialize_stimulus(a):
-	for i in range(5):
-		a[randi()%len(a)] = 2
+	var x = [0,2][randi()%2]
+	var y = [0,2][randi()%2]
+	a[x*h + y] = 2
 
 func update_buffer(new_buffer, uniform_array_idx):
 	uniform_array[uniform_array_idx] = new_buffer
@@ -135,7 +136,7 @@ func step():
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
-	rd.compute_list_dispatch(compute_list, 3, 3, 3)
+	rd.compute_list_dispatch(compute_list, 1, 1, 1)
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()
