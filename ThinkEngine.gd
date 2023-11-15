@@ -33,6 +33,9 @@ var connection_u = 0.05
 var connection_s = 0.3
 var threshold = 0.25
 
+var explore_u = 0.0
+var explore_s = 0.005
+
 func identity(a):
 	return 
 
@@ -43,11 +46,14 @@ func new_uniform(buffer, binding_index) -> RDUniform:
 	uniform1.add_id(buffer)
 	return uniform1
 	
-	
-func generate_buffer(size, init_function: Callable=Callable(self, "identity")) -> RID:
+func generate_packed_float32(size: int, 
+		  					 init_function: Callable=Callable(self, "identity")):
 	var a := PackedFloat32Array()
 	a.resize(size)
 	init_function.call(a)
+	return a
+	
+func generate_buffer(a: PackedFloat32Array) -> RID:
 	var bytes := a.to_byte_array() 
 	return rd.storage_buffer_create(bytes.size(), bytes)	
 		
@@ -111,14 +117,19 @@ func update_buffer(new_buffer, uniform_array_idx):
 	pipeline = rd.compute_pipeline_create(shader)
 	
 func update_stimulus():
-	stimulus_buffer = generate_buffer(w*h, Callable(self, 'initialize_stimulus'))
+	stimulus_buffer = generate_buffer(generate_packed_float32(w*h, Callable(self, 'initialize_stimulus')))
 	update_buffer(stimulus_buffer, 6)
 	
 func update_threshold(new_val):
 	threshold = new_val
-	variables_buffer = generate_buffer(5, Callable(self, 'initialize_variables_buffer'))
+	variables_buffer = generate_buffer(generate_packed_float32(5, Callable(self, 'initialize_variables_buffer')))
 	update_buffer(variables_buffer, 3)
 	
+func explore():
+	for i in range(len(connections_values)): 
+		connections_values[i] += randfn(explore_u, explore_s)
+	
+	update_buffer(generate_buffer(connections_values), 2)
 	
 # Called when the node enters the scene tree for the first time.
 func _init(width: int, height: int, length: int):
@@ -141,13 +152,13 @@ func _init(width: int, height: int, length: int):
 	stimulus_values.resize(w*h)
 	connections_values.resize(matrix_size * connection_count)
 	
-	potential_buffer = generate_buffer(matrix_size)
-	spike_buffer = generate_buffer(matrix_size)
-	connections_buffer = generate_buffer(matrix_size * connection_count, Callable(self, 'initialize_connections'))
-	variables_buffer = generate_buffer(5, Callable(self, 'initialize_variables_buffer'))
-	debug_buffer = generate_buffer(8)
-	excit_inhib_buffer = generate_buffer(matrix_size, Callable(self, 'initialize_excit_inhib'))
-	stimulus_buffer = generate_buffer(w*h, Callable(self, 'initialize_stimulus'))
+	potential_buffer = generate_buffer(generate_packed_float32(matrix_size))
+	spike_buffer = generate_buffer(generate_packed_float32(matrix_size))
+	connections_buffer = generate_buffer(generate_packed_float32(matrix_size * connection_count, Callable(self, 'initialize_connections')))
+	variables_buffer = generate_buffer(generate_packed_float32(5, Callable(self, 'initialize_variables_buffer')))
+	debug_buffer = generate_buffer(generate_packed_float32(8))
+	excit_inhib_buffer = generate_buffer(generate_packed_float32(matrix_size, Callable(self, 'initialize_excit_inhib')))
+	stimulus_buffer = generate_buffer(generate_packed_float32(w*h, Callable(self, 'initialize_stimulus')))
 	
 	uniform_array = [potential_buffer, 
 					 spike_buffer, 
@@ -179,8 +190,7 @@ func step():
 		for j in range(h):
 			response_values[i*h + j] = output[i*h*l + j*l + l-1]
 	
-	print(get_score())
-	
+	explore()
 	return output
 
 func get_spike_state():
