@@ -13,7 +13,7 @@ var compute_list: int
 var uniform_set: RID
 var pipeline: RID
 var output_bytes: PackedByteArray 
-var output: PackedFloat32Array
+var output: PackedFloat32Array 
 var matrix_size: int
 var worker_dims: int
 var uniform_array: Array
@@ -22,12 +22,15 @@ var response_values: PackedFloat32Array
 var stimulus_values: PackedFloat32Array
 var score: float = 0.0
 
+var task: Array
+var task_idx: int
+
 var reward: float = 0.6
 var penalty: float = 0.3
 
 var variables_buffer: RID
 var excit_inhib_buffer: RID
-var pr_ratio = 1.0/3.0
+var pr_ratio = 10
 
 var w: int
 var h: int
@@ -109,8 +112,6 @@ func get_score():
 					continue
 				
 				score += 1
-				
-
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -140,14 +141,48 @@ func update_buffer(new_buffer, uniform_array_idx):
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 	
+func reward_left():
+	score = 0
+	for i in range(w):
+		for j in range(h):
+			if response_values[i*h + j] > 0.1:
+				if i < w/2:
+					score += 1  
+				else:
+					score -= pr_ratio
+					
+func reward_right():
+	score = 0
+	for i in range(w):
+		for j in range(h):
+			if response_values[i*h + j] > 0.1:
+				if i > w/2:
+					score += 1  
+				else:
+					score -= pr_ratio
+			
 func update_stimulus():
-	stimulus_buffer = generate_buffer(generate_packed_float32(w*h, Callable(self, 'initialize_stimulus')))
+	task_idx = randi()%len(task)
+	task[task_idx][0].call()
+	stimulus_buffer = generate_buffer(stimulus_values)
 	update_buffer(stimulus_buffer, 6)
 	
 func update_threshold(new_val):
 	threshold = new_val
 	variables_buffer = generate_buffer(generate_packed_float32(5, Callable(self, 'initialize_variables_buffer')))
 	update_buffer(variables_buffer, 3)
+				
+func generate_random_horizontal():
+	stimulus_values.fill(0)
+	var y = randi()%(h-1)
+	for i in range(w):
+		stimulus_values[i*h + y] = 2
+	
+func generate_random_vertical():
+	stimulus_values.fill(0)
+	var x = randi()%(w-1)
+	for j in range(h):
+		stimulus_values[x*h + j] = 2	
 	
 func explore():
 	for i in range(len(connections_values)): 
@@ -196,6 +231,9 @@ func _init(width: int, height: int, length: int):
 	
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
+	
+	task = [[generate_random_vertical, reward_left], 
+			[generate_random_horizontal, reward_right]]
 
 func step():	
 	compute_list = rd.compute_list_begin()
@@ -209,22 +247,20 @@ func step():
 	rd.sync()	
 	
 	get_response()
-	get_score()
+	task[task_idx][1].call()
 	
 	if score == 0:
 		explore()
 	
 	if score > 0:
 		scale_connections(1 + reward)
-		print('BAM')
+		print(score)
 	
 	if score < 0:
 		scale_connections(1 - penalty)
 		explore()
 	
-	print(score)
 	
-
 func get_response():
 	output = get_spike_state()
 	for i in range(w):
@@ -235,7 +271,7 @@ func scale_connections(alpha):
 	covariant_array = rd.buffer_get_data(covariant_buffer).to_float32_array()
 	for i in range(len(covariant_array)): 
 		if covariant_array[i] == 1:
-			connections_values[i] *= alpha
+			connections_values[i] = connections_values[i]*alpha
 	update_buffer(generate_buffer(connections_values), 2)
 
 func get_covariants():

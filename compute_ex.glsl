@@ -72,7 +72,7 @@ void main() {
             }
         } else {
             in_refractory = true;
-            spike[idx] -= 0.04;
+            spike[idx] -= 0.1;
         }
 
         for(int i=-1; i <2; i++)
