@@ -6,6 +6,8 @@ var debug_buffer: RID
 var spike_buffer: RID
 var connections_values: PackedFloat32Array
 var connections_buffer: RID
+var covariant_buffer: RID
+var covariant_array: PackedFloat32Array
 var stimulus_buffer: RID
 var compute_list: int
 var uniform_set: RID
@@ -20,9 +22,12 @@ var response_values: PackedFloat32Array
 var stimulus_values: PackedFloat32Array
 var score: float = 0.0
 
+var reward: float = 0.6
+var penalty: float = 0.3
+
 var variables_buffer: RID
 var excit_inhib_buffer: RID
-var pr_ratio = 0.1
+var pr_ratio = 1.0/3.0
 
 var w: int
 var h: int
@@ -31,10 +36,10 @@ var l: int
 var connection_count: int = 27
 var connection_u = 0.05
 var connection_s = 0.3
-var threshold = 0.25
+var threshold = 0.6
 
 var explore_u = 0.0
-var explore_s = 0.005
+var explore_s = 0.05
 
 func identity(a):
 	return 
@@ -78,15 +83,34 @@ func initialize_connections(a):
 					
 func get_score():
 	score = 0
+	var i_level: bool
+	var j_level: bool
 	
-	for i in range(len(stimulus_values)):
-		if response_values[i] > 0:
-			if stimulus_values[i] > 0:
-				score += 1
-			else:
-				score -= pr_ratio
+	for i in range(w):
+		for j in range(h):
+			var idx = i*h + j
+			
+			if stimulus_values[idx] > 0:
+				i_level = i >= w*0.5
+				j_level = j >= h*0.5
 				
-	return score
+	
+	for i in range(w):
+		for j in range(h):
+			var idx = i*h + j
+			
+			if response_values[idx] > 0:
+				if (i >= w*0.5) == i_level:
+					score -= 1
+					continue
+						
+				if (j >= h*0.5) == j_level:
+					score -= 1
+					continue
+				
+				score += 1
+				
+
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -105,8 +129,8 @@ func initialize_excit_inhib(a):
 	print(a)
 	
 func initialize_stimulus(a):
-	var x = randi()%3
-	var y = randi()%3
+	var x = randi()%w
+	var y = randi()%h
 	stimulus_values.fill(0)
 	stimulus_values[x*h + y] = 1.0
 	a[x*h + y] = 2
@@ -155,6 +179,7 @@ func _init(width: int, height: int, length: int):
 	potential_buffer = generate_buffer(generate_packed_float32(matrix_size))
 	spike_buffer = generate_buffer(generate_packed_float32(matrix_size))
 	connections_buffer = generate_buffer(generate_packed_float32(matrix_size * connection_count, Callable(self, 'initialize_connections')))
+	covariant_buffer = generate_buffer(generate_packed_float32(matrix_size * connection_count))
 	variables_buffer = generate_buffer(generate_packed_float32(5, Callable(self, 'initialize_variables_buffer')))
 	debug_buffer = generate_buffer(generate_packed_float32(8))
 	excit_inhib_buffer = generate_buffer(generate_packed_float32(matrix_size, Callable(self, 'initialize_excit_inhib')))
@@ -166,7 +191,8 @@ func _init(width: int, height: int, length: int):
 					 variables_buffer, 
 					 debug_buffer, 
 					 excit_inhib_buffer,
-					 stimulus_buffer]
+					 stimulus_buffer,
+					 covariant_buffer]
 	
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
@@ -180,18 +206,40 @@ func step():
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()
-	rd.sync()
+	rd.sync()	
 	
-	# Read back the data from the buffer
-	output_bytes = rd.buffer_get_data(spike_buffer)
-	output = output_bytes.to_float32_array()
+	get_response()
+	get_score()
 	
+	if score == 0:
+		explore()
+	
+	if score > 0:
+		scale_connections(1 + reward)
+		print('BAM')
+	
+	if score < 0:
+		scale_connections(1 - penalty)
+		explore()
+	
+	print(score)
+	
+
+func get_response():
+	output = get_spike_state()
 	for i in range(w):
 		for j in range(h):
 			response_values[i*h + j] = output[i*h*l + j*l + l-1]
 	
-	explore()
-	return output
+func scale_connections(alpha):
+	covariant_array = rd.buffer_get_data(covariant_buffer).to_float32_array()
+	for i in range(len(covariant_array)): 
+		if covariant_array[i] == 1:
+			connections_values[i] *= alpha
+	update_buffer(generate_buffer(connections_values), 2)
+
+func get_covariants():
+	return rd.buffer_get_data(covariant_buffer).to_float32_array()
 
 func get_spike_state():
 	output_bytes = rd.buffer_get_data(spike_buffer)

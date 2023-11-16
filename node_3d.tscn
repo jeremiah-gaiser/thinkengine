@@ -15,10 +15,13 @@ light_volumetric_fog_energy = 10.222
 light_angular_distance = 30.63
 
 [node name="0" type="Camera3D" parent="."]
-transform = Transform3D(0.913545, -0.250412, 0.320513, -6.88901e-08, -0.788011, -0.615661, 0.406737, 0.562435, -0.719883, -0.02, -0.01, -0.25)
+transform = Transform3D(-0.601815, -0.491689, 0.629333, -6.88901e-08, -0.788011, -0.615661, 0.798635, -0.370514, 0.474236, 0.64, -0.05, 0.2)
 h_offset = 0.27
 v_offset = 0.07
 doppler_tracking = 1
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.72, 2.08165e-12, 2.08165e-12)
 
 [node name="DirectionalLight3D2" type="DirectionalLight3D" parent="."]
 visible = false

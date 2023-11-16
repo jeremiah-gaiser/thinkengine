@@ -2,7 +2,7 @@
 #version 450
 
 // Invocations in the (x, y, z) dimension
-layout(local_size_x = 3, local_size_y = 3, local_size_z=3) in;
+layout(local_size_x = 6, local_size_y = 6, local_size_z = 6) in;
 
 
 layout(set = 0, binding = 0, std430) buffer Potential {
@@ -33,6 +33,10 @@ layout(set = 0, binding = 6, std430) buffer Stimulus {
     float stimulus[];
 };
 
+layout(set = 0, binding = 7, std430) buffer Covariant {
+    float covariant[];
+};
+
 // The code we want to execute in each invocation
 void main() {
     int x = int(gl_GlobalInvocationID.x);
@@ -44,12 +48,15 @@ void main() {
     int l = int(variables[2]);
     int c = int(variables[3]);
 
+    bool in_refractory = false;
+
     float threshold = variables[4];
     float c_strength;
     float s_val;
     float p = 0;
 
     int idx = x*h*l + y*l + z;
+    int c_idx;
     int adj_idx;
 
     if(idx < w*h*l && z > 0)
@@ -58,15 +65,16 @@ void main() {
         int c_i;
 
         if (spike[idx] < 0.01){
+            in_refractory = false;
             if (potential[idx] > threshold) 
             {
                 spike[idx] = 1;
             }
         } else {
-           spike[idx] -= 0.05;
+            in_refractory = true;
+            spike[idx] -= 0.04;
         }
 
-        
         for(int i=-1; i <2; i++)
         {
             if(x == 0 && i == -1){ continue; }
@@ -83,11 +91,19 @@ void main() {
                     if(z == l-1 && k == 1){ continue; } 
                     if(i==0 && j==0 && k==0){ continue; }
 
-                    c_strength = connections[c_group + (i+1)*9 + (j+1)*3 + k+1]; 
+                    c_idx = c_group + (i+1)*9 + (j+1)*3 + k+1;
+                    c_strength = connections[c_idx]; 
                     adj_idx = (x+i)*h*l + (y+j)*l + (z+k);
                     s_val = spike[adj_idx] * ex_in[adj_idx]; 
-                    //s_val = spike[adj_idx];
                     p += tanh(c_strength)*s_val;
+
+                    if (in_refractory) {
+                        if (s_val >= 0.01) {
+                            covariant[c_idx] = 1;
+                        } else {
+                            covariant[c_idx] = 0;
+                        }
+                    }
                 }
             }
         }
