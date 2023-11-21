@@ -15,7 +15,7 @@ light_volumetric_fog_energy = 10.222
 light_angular_distance = 30.63
 
 [node name="0" type="Camera3D" parent="."]
-transform = Transform3D(0.798635, -0.370514, 0.474236, -6.88901e-08, -0.788011, -0.615661, 0.601815, 0.491689, -0.629333, 0.23, -0.14, -0.4)
+transform = Transform3D(0.798635, -0.370514, 0.474236, -6.88901e-08, -0.788011, -0.615661, 0.601815, 0.491689, -0.629333, 1.02, -0.39, -0.8)
 h_offset = 0.27
 v_offset = 0.07
 doppler_tracking = 1
@@ -37,9 +37,9 @@ script = ExtResource("2_r2who")
 [node name="ResetStimulus" type="Button" parent="Control"]
 layout_mode = 0
 offset_left = 10.82
-offset_top = 15.11
+offset_top = 80.77
 offset_right = 133.82
-offset_bottom = 46.11
+offset_bottom = 121.2
 scale = Vector2(1.56, 1.56)
 text = "Reset Stimulus"
 
@@ -48,13 +48,22 @@ custom_minimum_size = Vector2(-0.03, 2.08165e-12)
 layout_direction = 2
 layout_mode = 1
 offset_left = 20.0
-offset_top = 75.13
+offset_top = 156.5
 offset_right = 320.0
-offset_bottom = 95.13
+offset_bottom = 176.5
 pivot_offset = Vector2(2.08165e-12, 2.08165e-12)
 max_value = 0.8
 step = 0.001
 value = 0.4
 
+[node name="Reload" type="Button" parent="Control"]
+layout_mode = 0
+offset_left = 10.42
+offset_right = 121.88
+offset_bottom = 39.16
+scale = Vector2(1.74, 1.74)
+text = "Reload"
+
 [connection signal="pressed" from="Control/ResetStimulus" to="." method="_on_button_pressed"]
 [connection signal="value_changed" from="Control/Threshold" to="." method="_on_threshold_value_changed"]
+[connection signal="pressed" from="Control/Reload" to="." method="_on_reload_pressed"]

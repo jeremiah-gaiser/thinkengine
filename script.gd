@@ -1,6 +1,6 @@
 extends Node3D
 
-var grid_size: Vector3 = Vector3(6, 6, 6) 
+var grid_size: Vector3 = Vector3(20, 20, 20) 
 var voxel_size: float = 0.05
 var multi_mesh: MultiMesh
 var multi_mesh_instance: MultiMeshInstance3D
@@ -62,44 +62,30 @@ func update_cells(cell_vals):
 	cell_index = 0
 	
 	for x in range(0, grid_size.x):
-#		if x > 0 and x < grid_size.x-1:
-#					continue	
 		for y in range(0, grid_size.y):
-#			if y > 0 and y < grid_size.x-1:
-#					continue
 			for z in range(0, grid_size.z):
-#				if z > 0 and z < grid_size.x-1:
-#					continue
-					
 				cell_index = x*grid_size.y*grid_size.z + y*grid_size.z + z
 				multi_mesh.set_instance_custom_data(cell_index, Color(cell_vals[cell_index],0,0))
-	
-#	for v in cell_vals:
-#		multi_mesh.set_instance_custom_data(cell_index, Color(v,0,0))
-#
-#		cell_index += 1
-#
-#		if cell_index >= total_instances:
-#			break
-	
 
 func _process(d):
 	frame_count += 1
 	
 	if frame_count % 100 == 0:
-		think_engine.update_stimulus()
+		think_engine.randomize_stimulus()
 	
-	
-	
-	think_engine.step()
+	think_engine.step(frame_count)
 	update_cells(think_engine.get_spike_state())
 	
 
 func _on_button_pressed():
-	think_engine.update_stimulus()
+	think_engine.randomize_stimulus()
 	pass # Replace with function body.
 
 func _on_threshold_value_changed(value):
 	think_engine.update_threshold(value)
 	print(value)
+	pass # Replace with function body.
+
+func _on_reload_pressed():
+	get_tree().reload_current_scene()
 	pass # Replace with function body.
