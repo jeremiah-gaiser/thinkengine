@@ -1,6 +1,6 @@
 extends Node3D
 
-var grid_size: Vector3 = Vector3(20, 20, 20) 
+var grid_size: Vector3 = Vector3(3, 3, 3) 
 var voxel_size: float = 0.05
 var multi_mesh: MultiMesh
 var multi_mesh_instance: MultiMeshInstance3D
@@ -12,12 +12,25 @@ var frame_count: int = 0
 var grid_idx: int
 var think_out: PackedFloat32Array
 var cell_index: int
+var ui_state = {}
 
 func _ready():
 	setup_multi_mesh()
 	generate_voxel_grid()
-	think_engine = ThinkEngine.new(grid_size.x, grid_size.y, grid_size.z)
-	$Control/Threshold.set_value_no_signal(think_engine.threshold)
+	load_ui_state()
+	
+	think_engine = ThinkEngine.new(grid_size.x, 
+								   grid_size.y, 
+								   grid_size.z)
+	
+	$Control/Threshold.set_value(ui_state['threshold'])
+	$Control/r_step.set_value(ui_state['r_step'])
+	$Control/reward.set_value(ui_state['reward'])
+	$Control/penalty.set_value(ui_state['penalty'])
+	$Control/exploration.set_value(ui_state['exploration'])
+	
+#	$Control/Threshold.set_value_no_signal(think_engine.threshold)
+	
 	update_cells(think_engine.get_spike_state())
 	
 func setup_multi_mesh():
@@ -70,22 +83,59 @@ func update_cells(cell_vals):
 func _process(d):
 	frame_count += 1
 	
-	if frame_count % 100 == 0:
-		think_engine.randomize_stimulus()
+#	if frame_count % 100 == 0:
+#		think_engine.randomize_stimulus()
 	
 	think_engine.step(frame_count)
 	update_cells(think_engine.get_spike_state())
-	
 
 func _on_button_pressed():
 	think_engine.randomize_stimulus()
-	pass # Replace with function body.
+
+func _on_reload_pressed():
+	think_engine.dump_log()
+	get_tree().reload_current_scene()
 
 func _on_threshold_value_changed(value):
 	think_engine.update_threshold(value)
-	print(value)
+	$Control/Threshold/val.text = str(value)
+	
+func _on_r_step_value_changed(value):
+	think_engine.update_r_step(value)
+	$Control/r_step/val.text = str(value)
+
+func load_ui_state():
+	var file = FileAccess.open("ui_state.json", FileAccess.READ)
+	ui_state = JSON.parse_string(file.get_line())
+	print(ui_state)
+	file.close()
+	
+func save_ui_state():
+	var file = FileAccess.open("ui_state.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify({
+		'threshold': $Control/Threshold.value,
+		'r_step': $Control/r_step.value,
+		'reward': $Control/reward.value,
+		'penalty': $Control/penalty.value,
+		'exploration': $Control/exploration.value,
+	}))
+	file.close()
+
+func _on_close_pressed():
+	think_engine.dump_log()
+	save_ui_state()
+	get_tree().quit()
 	pass # Replace with function body.
 
-func _on_reload_pressed():
-	get_tree().reload_current_scene()
-	pass # Replace with function body.
+
+func _on_exploration_value_changed(value):
+	think_engine.update_exploration(value)
+	$Control/exploration/val.text = str(value)
+
+func _on_penalty_value_changed(value):
+	think_engine.update_penalty(value)
+	$Control/penalty/val.text = str(value)
+
+func _on_reward_value_changed(value):
+	think_engine.update_reward(value)
+	$Control/reward/val.text = str(value)

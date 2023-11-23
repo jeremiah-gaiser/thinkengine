@@ -22,27 +22,41 @@ var response_values: PackedFloat32Array
 var rp_values: PackedFloat32Array
 var stimulus_values: PackedFloat32Array
 var score: float = 0.0
+var report_data = {
+	'frame': [],
+	'reward': [],
+	'penalty': [],
+	'refractory_step': [],
+	'threshold': [],
+	'score': [],
+	'stimulus_values': [],
+	'response_values': [],
+	'rp_values': [],
+}
+
+var frame_number: int
 
 var task: Array
 var task_idx: int
 
-var reward: float = 0.6
-var penalty: float = 0.3
+var reward: float 
+var penalty: float 
+var refractory_step: float
 
 var variables_buffer: RID
 var excit_inhib_buffer: RID
-var pr_ratio = 10
+var pr_ratio = 0.333
 
 var w: int
 var h: int
 var l: int
 
 var connection_count: int = 27
-var connection_u = 0.05
-var connection_s = 0.3
-var threshold = 0.6
+var connection_u = 0.1
+var connection_s = 0.5
+var threshold: float = 0.4
 
-var explore_u = 0.0
+var explore_u = 0 
 var explore_s = 0.05
 
 func identity(a):
@@ -72,6 +86,19 @@ func initialize_variables_buffer(a):
 	a[2] = l
 	a[3] = connection_count
 	a[4] = threshold
+	a[5] = refractory_step 
+
+func log_data():
+	report_data['frame'].append(frame_number)
+	report_data['reward'].append(reward)
+	report_data['penalty'].append(penalty)
+	report_data['refractory_step'].append(refractory_step)
+	report_data['threshold'].append(threshold)
+	report_data['score'].append(score)
+	report_data['stimulus_values'].append(stimulus_values)
+	report_data['response_values'].append(response_values)
+	report_data['rp_values'].append(rp_values)
+	
 	
 func initialize_connections(a):
 	var rand_con: float
@@ -88,9 +115,7 @@ func initialize_connections(a):
 func get_score():
 	score = 0
 	for i in range(len(response_values)):
-		score += response_values[i] * rp_values[i]
-	if score >0:
-		print(score)
+		score += clamp(response_values[i], 0, 999) * rp_values[i]
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -141,7 +166,6 @@ func set_reward(conditions: Array):
 			if skip_idx(j, conditions[1]):
 				continue 	
 			rp_values[i*h + j] = 1
-	print(rp_values)
 	
 func reward_left():
 	set_reward([[[lt, w/2]], []])
@@ -160,9 +184,23 @@ func randomize_stimulus():
 	
 func update_threshold(new_val):
 	threshold = new_val
-	variables_buffer = generate_buffer(generate_packed_float32(5, initialize_variables_buffer))
+	variables_buffer = generate_buffer(generate_packed_float32(6, initialize_variables_buffer))
 	update_buffer(variables_buffer, 3)
-				
+	
+func update_r_step(new_val):
+	refractory_step = new_val
+	variables_buffer = generate_buffer(generate_packed_float32(6, initialize_variables_buffer))
+	update_buffer(variables_buffer, 3)
+	
+func update_reward(new_val):
+	reward = new_val
+	
+func update_penalty(new_val):
+	penalty = new_val
+	
+func update_exploration(new_val):
+	explore_s = new_val
+	
 func generate_random_horizontal():
 	stimulus_values.fill(0)
 	var y = randi()%(h-1)
@@ -174,6 +212,16 @@ func generate_random_vertical():
 	var x = randi()%(w-1)
 	for j in range(h):
 		stimulus_values[x*h + j] = 2	
+		
+func stim_random_cell():
+	stimulus_values.fill(0)
+	stimulus_values[randi()%len(stimulus_values)] = 2
+
+func reward_match():
+	rp_values.fill(-1*pr_ratio)
+	for i in range(len(rp_values)):
+		if stimulus_values[i] > 0:
+			rp_values[i] = 1
 	
 func explore():
 	for i in range(len(connections_values)): 
@@ -182,10 +230,13 @@ func explore():
 	update_buffer(generate_buffer(connections_values), 2)
 	
 # Called when the node enters the scene tree for the first time.
-func _init(width: int, height: int, length: int):
+func _init(width: int, 
+		   height: int, 
+		   length: int):
 	w=width
 	h=height
 	l=length
+	threshold = threshold
 	
 	rd = RenderingServer.create_local_rendering_device()
 	# Load GLSL shader
@@ -208,7 +259,7 @@ func _init(width: int, height: int, length: int):
 	spike_buffer = generate_buffer(generate_packed_float32(matrix_size))
 	connections_buffer = generate_buffer(generate_packed_float32(matrix_size * connection_count, initialize_connections))
 	covariant_buffer = generate_buffer(generate_packed_float32(matrix_size * connection_count))
-	variables_buffer = generate_buffer(generate_packed_float32(5, initialize_variables_buffer))
+	variables_buffer = generate_buffer(generate_packed_float32(6, initialize_variables_buffer))
 	debug_buffer = generate_buffer(generate_packed_float32(8))
 	excit_inhib_buffer = generate_buffer(generate_packed_float32(matrix_size, initialize_excit_inhib))
 	stimulus_buffer = generate_buffer(generate_packed_float32(w*h))
@@ -225,35 +276,41 @@ func _init(width: int, height: int, length: int):
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 	
-	task = [[generate_random_vertical, reward_left], 
-			[generate_random_horizontal, reward_right]]
+#	task = [[generate_random_vertical, reward_left], 
+#			[generate_random_horizontal, reward_right]]
+	
+	task = [[stim_random_cell, reward_match]]
 	
 	randomize_stimulus()
 
 func step(frame: int):	
+	frame_number = frame
 	compute_list = rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
-	rd.compute_list_dispatch(compute_list, 2, 2, 2)
+	rd.compute_list_dispatch(compute_list, 1, 1, 1)
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()
 	rd.sync()	
 	
-	get_response()
-	get_score()
+	if frame % 1 == 0:
+		get_response()
+		get_score()
 	
-	if score == 0:
-		explore()
+		if score == 0:
+			explore()
 
-	if score > 0:
-		scale_connections(1 + reward)
-		print(score)
+		if score > 0:
+			scale_connections(1 + reward)
 
-	if score < 0:
-		scale_connections(1 - penalty)
-		explore()
+		if score < 0:
+			scale_connections(1 - penalty)
+			explore()
+			
+	if frame % 50 == 0:
+		log_data()
 	
 func get_response():
 	output = get_spike_state()
@@ -275,6 +332,10 @@ func get_spike_state():
 	output_bytes = rd.buffer_get_data(spike_buffer)
 	return output_bytes.to_float32_array()
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
-	pass
+func dump_log():
+	var path = 'exp_data/exp_' + Time.get_date_string_from_system(true) + '_' + Time.get_time_string_from_system() + '_' + '.json'
+	var file = FileAccess.open(path, FileAccess.WRITE)
+	file.store_string(JSON.stringify(report_data))
+
+
+

@@ -2,7 +2,7 @@
 #version 450
 
 // Invocations in the (x, y, z) dimension
-layout(local_size_x = 10, local_size_y = 10, local_size_z = 10) in;
+layout(local_size_x = 3, local_size_y = 3, local_size_z = 3) in;
 
 
 layout(set = 0, binding = 0, std430) buffer Potential {
@@ -54,6 +54,7 @@ void main() {
     float c_strength;
     float s_val;
     float p = 0;
+    float r_step = variables[5];
 
     int idx = x*h*l + y*l + z;
     int c_idx;
@@ -72,7 +73,7 @@ void main() {
             }
         } else {
             in_refractory = true;
-            spike[idx] -= 0.1;
+            spike[idx] -= r_step;
         }
 
         for(int i=-1; i <2; i++)
