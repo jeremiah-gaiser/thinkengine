@@ -13,6 +13,7 @@ var grid_idx: int
 var think_out: PackedFloat32Array
 var cell_index: int
 var ui_state = {}
+var pos_neg: Array
 
 func _ready():
 	setup_multi_mesh()
@@ -88,7 +89,10 @@ func _process(d):
 	
 	think_engine.step(frame_count)
 	update_cells(think_engine.get_spike_state())
-
+	pos_neg = think_engine.get_pos_neg_scores()
+	$Control/pos_score.text = pos_neg[0]
+	$Control/neg_score.text = pos_neg[1]
+	
 func _on_button_pressed():
 	think_engine.randomize_stimulus()
 
@@ -139,3 +143,4 @@ func _on_penalty_value_changed(value):
 func _on_reward_value_changed(value):
 	think_engine.update_reward(value)
 	$Control/reward/val.text = str(value)
+

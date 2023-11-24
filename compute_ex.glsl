@@ -70,7 +70,11 @@ void main() {
             if (potential[idx] > threshold) 
             {
                 spike[idx] = 1;
+            } else {
+                spike[idx] = 0;
             }
+        } else if (spike[idx] < 0) {
+            spike[idx] = 0;
         } else {
             in_refractory = true;
             spike[idx] -= r_step;

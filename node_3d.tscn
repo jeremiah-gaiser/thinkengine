@@ -186,6 +186,23 @@ offset_bottom = 8.93
 scale = Vector2(1.86, 1.86)
 text = "20"
 
+[node name="pos_score" type="Label" parent="Control"]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 10.0
+offset_right = 340.12
+offset_bottom = 36.0
+scale = Vector2(1.65, 1.65)
+text = "0"
+
+[node name="neg_score" type="Label" parent="Control"]
+offset_left = 302.09
+offset_top = 54.45
+offset_right = 342.21
+offset_bottom = 80.45
+scale = Vector2(1.65, 1.65)
+text = "0"
+
 [connection signal="pressed" from="Control/ResetStimulus" to="." method="_on_button_pressed"]
 [connection signal="value_changed" from="Control/Threshold" to="." method="_on_threshold_value_changed"]
 [connection signal="pressed" from="Control/Reload" to="." method="_on_reload_pressed"]

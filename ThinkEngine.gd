@@ -34,6 +34,9 @@ var report_data = {
 	'rp_values': [],
 }
 
+var pos_scores: int
+var neg_scores: int
+
 var frame_number: int
 
 var task: Array
@@ -54,10 +57,10 @@ var l: int
 var connection_count: int = 27
 var connection_u = 0.1
 var connection_s = 0.5
-var threshold: float = 0.4
+var threshold: float
 
 var explore_u = 0 
-var explore_s = 0.05
+var explore_s: float
 
 func identity(a):
 	return 
@@ -114,8 +117,19 @@ func initialize_connections(a):
 					
 func get_score():
 	score = 0
+	pos_scores = 0
+	neg_scores = 0
+	var cell_score: float
+	
 	for i in range(len(response_values)):
-		score += clamp(response_values[i], 0, 999) * rp_values[i]
+		cell_score = response_values[i] * rp_values[i]
+		score += cell_score
+		
+		if cell_score > 0:
+			pos_scores += 1
+		if cell_score < 0:
+			neg_scores += 1
+		
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -276,10 +290,10 @@ func _init(width: int,
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 	
-	task = [[generate_random_vertical, reward_left], 
-			[generate_random_horizontal, reward_right]]
+#	task = [[generate_random_vertical, reward_left], 
+#			[generate_random_horizontal, reward_right]]
 	
-#	task = [[stim_random_cell, reward_match]]
+	task = [[stim_random_cell, reward_match]]
 	
 	randomize_stimulus()
 
@@ -331,6 +345,9 @@ func get_covariants():
 func get_spike_state():
 	output_bytes = rd.buffer_get_data(spike_buffer)
 	return output_bytes.to_float32_array()
+
+func get_pos_neg_scores():
+	return [str(pos_scores), str(neg_scores)]
 
 func dump_log():
 	var path = 'exp_data/exp_' + Time.get_date_string_from_system(true) + '_' + Time.get_time_string_from_system() + '_' + '.json'
