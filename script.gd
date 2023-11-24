@@ -83,8 +83,8 @@ func update_cells(cell_vals):
 func _process(d):
 	frame_count += 1
 	
-#	if frame_count % 100 == 0:
-#		think_engine.randomize_stimulus()
+	if frame_count % 150 == 0:
+		think_engine.randomize_stimulus()
 	
 	think_engine.step(frame_count)
 	update_cells(think_engine.get_spike_state())

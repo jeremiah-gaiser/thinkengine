@@ -276,10 +276,10 @@ func _init(width: int,
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 	
-#	task = [[generate_random_vertical, reward_left], 
-#			[generate_random_horizontal, reward_right]]
+	task = [[generate_random_vertical, reward_left], 
+			[generate_random_horizontal, reward_right]]
 	
-	task = [[stim_random_cell, reward_match]]
+#	task = [[stim_random_cell, reward_match]]
 	
 	randomize_stimulus()
 
