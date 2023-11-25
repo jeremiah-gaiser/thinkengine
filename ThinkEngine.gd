@@ -239,6 +239,7 @@ func reward_match():
 	
 func explore():
 	for i in range(len(connections_values)): 
+		print(randfn(explore_u, explore_s))
 		connections_values[i] += randfn(explore_u, explore_s)
 	
 	update_buffer(generate_buffer(connections_values), 2)
