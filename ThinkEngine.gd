@@ -24,14 +24,14 @@ var stimulus_values: PackedFloat32Array
 var score: float = 0.0
 var report_data = {
 	'frame': [],
-	'reward': [],
-	'penalty': [],
-	'refractory_step': [],
-	'threshold': [],
+	'reward': '',
+	'penalty': '',
+	'refractory_step': '',
+	'threshold': '',
 	'score': [],
-	'stimulus_values': [],
-	'response_values': [],
-	'rp_values': [],
+	'pos_scores': [],
+	'neg_scores': [],
+	'rp_values': '',
 }
 
 var pos_scores: int
@@ -93,14 +93,9 @@ func initialize_variables_buffer(a):
 
 func log_data():
 	report_data['frame'].append(frame_number)
-	report_data['reward'].append(reward)
-	report_data['penalty'].append(penalty)
-	report_data['refractory_step'].append(refractory_step)
-	report_data['threshold'].append(threshold)
 	report_data['score'].append(score)
-	report_data['stimulus_values'].append(stimulus_values)
-	report_data['response_values'].append(response_values)
-	report_data['rp_values'].append(rp_values)
+	report_data['pos_scores'].append(pos_scores)
+	report_data['neg_scores'].append(neg_scores)
 	
 	
 func initialize_connections(a):
@@ -129,7 +124,6 @@ func get_score():
 			pos_scores += 1
 		if cell_score < 0:
 			neg_scores += 1
-		
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -141,11 +135,10 @@ func collect_uniforms(buffer_a):
 	
 func initialize_excit_inhib(a):
 	for c_i in range(len(a)):
-#		if randf() < 0.7:
+		if randf() < 0.8:
 			a[c_i] = 1
-#		else:
-#			a[c_i] = -1
-#	print(a)
+		else:
+			a[c_i] = -1
 
 func update_buffer(new_buffer, uniform_array_idx):
 	uniform_array[uniform_array_idx] = new_buffer
@@ -295,6 +288,12 @@ func _init(width: int,
 #			[generate_random_horizontal, reward_right]]
 	
 	task = [[stim_random_cell, reward_match]]
+	
+	var k = ['reward', 'penalty', 'refractory_step', 'rp_values']
+	var v = [reward, penalty, refractory_step, rp_values]
+	
+	for i in range(len(k)):
+		report_data[k[i]] = v[i]
 	
 	randomize_stimulus()
 
