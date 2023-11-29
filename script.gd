@@ -1,6 +1,6 @@
 extends Node3D
 
-var grid_size: Vector3 = Vector3(3, 3, 3) 
+var grid_size: Vector3 = Vector3(20, 20, 20) 
 var voxel_size: float = 0.05
 var multi_mesh: MultiMesh
 var multi_mesh_instance: MultiMeshInstance3D
@@ -18,20 +18,12 @@ var pos_neg: Array
 func _ready():
 	setup_multi_mesh()
 	generate_voxel_grid()
-	load_ui_state()
 	
 	think_engine = ThinkEngine.new(grid_size.x, 
 								   grid_size.y, 
 								   grid_size.z)
 	
-	$Control/Threshold.set_value(ui_state['threshold'])
-	$Control/r_step.set_value(ui_state['r_step'])
-	$Control/reward.set_value(ui_state['reward'])
-	$Control/penalty.set_value(ui_state['penalty'])
-	$Control/exploration.set_value(ui_state['exploration'])
-	
-#	$Control/Threshold.set_value_no_signal(think_engine.threshold)
-	
+	load_ui_state()
 	update_cells(think_engine.get_spike_state())
 	
 func setup_multi_mesh():
@@ -92,26 +84,17 @@ func _process(d):
 	pos_neg = think_engine.get_pos_neg_scores()
 	$Control/pos_score.text = pos_neg[0]
 	$Control/neg_score.text = pos_neg[1]
-	
-func _on_button_pressed():
-	think_engine.randomize_stimulus()
-
-func _on_reload_pressed():
-	think_engine.dump_log()
-	get_tree().reload_current_scene()
-
-func _on_threshold_value_changed(value):
-	think_engine.update_threshold(value)
-	$Control/Threshold/val.text = str(value)
-	
-func _on_r_step_value_changed(value):
-	think_engine.update_r_step(value)
-	$Control/r_step/val.text = str(value)
 
 func load_ui_state():
 	var file = FileAccess.open("ui_state.json", FileAccess.READ)
 	ui_state = JSON.parse_string(file.get_line())
-	print(ui_state)
+	
+	$Control/Threshold.set_value(ui_state['threshold'])
+	$Control/r_step.set_value(ui_state['r_step'])
+	$Control/reward.set_value(ui_state['reward'])
+	$Control/penalty.set_value(ui_state['penalty'])
+	$Control/exploration.set_value(ui_state['exploration'])
+	
 	file.close()
 	
 func save_ui_state():
@@ -125,13 +108,6 @@ func save_ui_state():
 	}))
 	file.close()
 
-func _on_close_pressed():
-	think_engine.dump_log()
-	save_ui_state()
-	get_tree().quit()
-	pass # Replace with function body.
-
-
 func _on_exploration_value_changed(value):
 	think_engine.update_exploration(value)
 	$Control/exploration/val.text = str(value)
@@ -144,3 +120,23 @@ func _on_reward_value_changed(value):
 	think_engine.update_reward(value)
 	$Control/reward/val.text = str(value)
 
+func _on_threshold_value_changed(value):
+	think_engine.update_threshold(value)
+	$Control/Threshold/val.text = str(value)
+	
+func _on_r_step_value_changed(value):
+	think_engine.update_r_step(value)
+	$Control/r_step/val.text = str(value)
+
+func _on_button_pressed():
+	think_engine.randomize_stimulus()
+
+func _on_reload_pressed():
+	think_engine.dump_log()
+	save_ui_state()
+	get_tree().reload_current_scene()
+	
+func _on_close_pressed():
+	think_engine.dump_log()
+	save_ui_state()
+	get_tree().quit()

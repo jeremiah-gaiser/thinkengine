@@ -1,5 +1,7 @@
 class_name ThinkEngine extends Node3D
 
+var report_path = 'exp_data/exp3/e3_20x20x20_jitter_trial'
+
 var rd: RenderingDevice
 var potential_buffer: RID
 var debug_buffer: RID
@@ -29,10 +31,16 @@ var report_data = {
 	'refractory_step': '',
 	'threshold': '',
 	'score': [],
+	'explore_variance': '',
 	'pos_scores': [],
 	'neg_scores': [],
 	'rp_values': '',
 }
+
+var logged_hyperparams = false
+
+var horizontal_stimulus = false
+var stimulus_idx = 0
 
 var pos_scores: int
 var neg_scores: int
@@ -40,7 +48,7 @@ var neg_scores: int
 var frame_number: int
 
 var task: Array
-var task_idx: int
+var task_idx = 0
 
 var reward: float 
 var penalty: float 
@@ -48,7 +56,7 @@ var refractory_step: float
 
 var variables_buffer: RID
 var excit_inhib_buffer: RID
-var pr_ratio = 0.333
+var pr_ratio = 8
 
 var w: int
 var h: int
@@ -92,11 +100,19 @@ func initialize_variables_buffer(a):
 	a[5] = refractory_step 
 
 func log_data():
+	if !logged_hyperparams:
+		var k = ['threshold', 'reward', 'penalty', 'refractory_step', 'rp_values', 'explore_variance']
+		var v = [threshold, reward, penalty, refractory_step, rp_values, explore_s]
+		
+		for i in range(len(k)):
+			report_data[k[i]] = v[i]
+		
+		logged_hyperparams = true
+	
 	report_data['frame'].append(frame_number)
 	report_data['score'].append(score)
 	report_data['pos_scores'].append(pos_scores)
 	report_data['neg_scores'].append(neg_scores)
-	
 	
 func initialize_connections(a):
 	var rand_con: float
@@ -117,6 +133,9 @@ func get_score():
 	var cell_score: float
 	
 	for i in range(len(response_values)):
+		if response_values[i] < 0.01:
+			response_values[i] = 0
+			
 		cell_score = response_values[i] * rp_values[i]
 		score += cell_score
 		
@@ -135,10 +154,11 @@ func collect_uniforms(buffer_a):
 	
 func initialize_excit_inhib(a):
 	for c_i in range(len(a)):
-		if randf() < 0.8:
-			a[c_i] = 1
-		else:
-			a[c_i] = -1
+		a[c_i] = 1
+#		if randf() < 0.8:
+#			a[c_i] = 1
+#		else:
+#			a[c_i] = -1
 
 func update_buffer(new_buffer, uniform_array_idx):
 	uniform_array[uniform_array_idx] = new_buffer
@@ -181,13 +201,14 @@ func reward_right():
 	set_reward([[[gt, w/2]], []])
 			
 func randomize_stimulus():
-	task_idx = randi()%len(task)
+#	task_idx = randi()%len(task)
+	task_idx += 1
 	
-	for f in task[task_idx]: 
+	for f in task[task_idx % 2]: 
 		f.call()
 		
-	stimulus_buffer = generate_buffer(stimulus_values)
-	update_buffer(stimulus_buffer, 6)
+#	stimulus_buffer = generate_buffer(stimulus_values)
+#	update_buffer(stimulus_buffer, 6)
 	
 func update_threshold(new_val):
 	threshold = new_val
@@ -208,31 +229,66 @@ func update_penalty(new_val):
 func update_exploration(new_val):
 	explore_s = new_val
 	
-func generate_random_horizontal():
+func generate_line():
 	stimulus_values.fill(0)
-	var y = randi()%(h-1)
-	for i in range(w):
-		stimulus_values[i*h + y] = 2
+	print(stimulus_idx)
+	
+	if horizontal_stimulus:
+		for i in range(w):
+			stimulus_values[i*h + stimulus_idx] = 2
+	else:
+		for j in range(h):
+			stimulus_values[stimulus_idx*h + j] = 2
+			
+	stimulus_buffer = generate_buffer(stimulus_values)
+	update_buffer(stimulus_buffer, 6)	
+	
+func generate_random_horizontal():
+	horizontal_stimulus = true
+	stimulus_idx = randi()%h
+	generate_line()
 	
 func generate_random_vertical():
-	stimulus_values.fill(0)
-	var x = randi()%(w-1)
-	for j in range(h):
-		stimulus_values[x*h + j] = 2	
+	horizontal_stimulus = false
+	stimulus_idx = randi()%w
+	generate_line()
 		
 func stim_random_cell():
 	stimulus_values.fill(0)
 	stimulus_values[randi()%len(stimulus_values)] = 2
+
+func jitter_stimulus():
+	var stim_idx_delta = randi()%2
+	if stimulus_idx == w-1:
+		stim_idx_delta *= -1
+	elif stimulus_idx > 0:
+		stim_idx_delta *= [1,-1][randi()%2]
+	stimulus_idx += stim_idx_delta
+	generate_line()
+	
 
 func reward_match():
 	rp_values.fill(-1*pr_ratio)
 	for i in range(len(rp_values)):
 		if stimulus_values[i] > 0:
 			rp_values[i] = 1
+#	var stim_i = 0
+#	var stim_j = 0
+#
+#	for i in range(w):
+#		for j in range(h):
+#			if stimulus_values[i*h + j] > 0:
+#				stim_i = i
+#				stim_j = j
+#
+#	for i in range(w):
+#		for j in range(h):
+#			if abs(i-stim_i) < 2:
+#				if abs(j-stim_j) < 2:
+#					rp_values[i*h + j] = 1
 	
 func explore():
 	for i in range(len(connections_values)): 
-		print(randfn(explore_u, explore_s))
 		connections_values[i] += randfn(explore_u, explore_s)
 	
 	update_buffer(generate_buffer(connections_values), 2)
@@ -284,17 +340,10 @@ func _init(width: int,
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 	
-#	task = [[generate_random_vertical, reward_left], 
-#			[generate_random_horizontal, reward_right]]
+	task = [[generate_random_vertical, reward_left], 
+			[generate_random_horizontal, reward_right]]
 	
-	task = [[stim_random_cell, reward_match]]
-	
-	var k = ['reward', 'penalty', 'refractory_step', 'rp_values']
-	var v = [reward, penalty, refractory_step, rp_values]
-	
-	for i in range(len(k)):
-		report_data[k[i]] = v[i]
-	
+#	task = [[stim_random_cell, reward_match]]
 	randomize_stimulus()
 
 func step(frame: int):	
@@ -303,14 +352,15 @@ func step(frame: int):
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
-	rd.compute_list_dispatch(compute_list, 1, 1, 1)
+	rd.compute_list_dispatch(compute_list, 2, 2, 2)
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()
 	rd.sync()	
 	
-	if frame % 1 == 0:
-		get_response()
+	get_response()
+	
+	if frame % 10 == 0:
 		get_score()
 	
 		if score == 0:
@@ -325,6 +375,8 @@ func step(frame: int):
 			
 	if frame % 50 == 0:
 		log_data()
+	
+	jitter_stimulus()
 	
 func get_response():
 	output = get_spike_state()
@@ -350,8 +402,18 @@ func get_pos_neg_scores():
 	return [str(pos_scores), str(neg_scores)]
 
 func dump_log():
-	var path = 'exp_data/exp_' + Time.get_date_string_from_system(true) + '_' + Time.get_time_string_from_system() + '_' + '.json'
-	var file = FileAccess.open(path, FileAccess.WRITE)
+	var report_idx = 1
+	
+	report_path += '_' + str(report_idx)
+#	var path = 'exp_data/exp_' + Time.get_date_string_from_system(true) + '_' + Time.get_time_string_from_system() + '_' + '.json'
+	while FileAccess.file_exists(report_path + '.json'):
+		report_idx += 1
+		var split_string = report_path.split('_')
+		split_string[-1] = str(report_idx)
+		report_path = "_".join(split_string)		
+		
+	var file = FileAccess.open(report_path + '.json', FileAccess.WRITE)
+	print(report_path + '.json')
 	file.store_string(JSON.stringify(report_data))
 
 

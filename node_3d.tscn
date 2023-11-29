@@ -15,7 +15,7 @@ light_volumetric_fog_energy = 10.222
 light_angular_distance = 30.63
 
 [node name="0" type="Camera3D" parent="."]
-transform = Transform3D(0.731354, -0.400869, 0.551748, -7.07265e-08, -0.809017, -0.587785, 0.681998, 0.429879, -0.591677, 0.03, -0.05, -0.34)
+transform = Transform3D(0.731354, -0.309621, 0.607664, -7.78943e-08, -0.891006, -0.45399, 0.681998, 0.332028, -0.65164, 1.12, -0.02, -0.96)
 h_offset = 0.27
 v_offset = 0.07
 doppler_tracking = 1
@@ -89,7 +89,7 @@ offset_left = 20.24
 offset_top = 245.34
 offset_right = 317.51
 offset_bottom = 261.34
-max_value = 0.3
+max_value = 0.1
 step = 0.001
 
 [node name="Label" type="Label" parent="Control/r_step"]
@@ -101,6 +101,7 @@ scale = Vector2(1.51, 1.51)
 text = "Refractory Step"
 
 [node name="val" type="Label" parent="Control/r_step"]
+layout_mode = 0
 offset_left = 309.68
 offset_top = -14.07
 offset_right = 349.68
@@ -117,6 +118,7 @@ scale = Vector2(2.24, 2.24)
 text = "X"
 
 [node name="reward" type="HSlider" parent="Control"]
+layout_mode = 0
 offset_left = 20.24
 offset_top = 363.42
 offset_right = 317.51
@@ -133,6 +135,7 @@ scale = Vector2(1.51, 1.51)
 text = "Reward"
 
 [node name="val" type="Label" parent="Control/reward"]
+layout_mode = 0
 offset_left = 309.68
 offset_top = -14.07
 offset_right = 349.68
@@ -140,6 +143,7 @@ offset_bottom = 8.93
 scale = Vector2(1.86, 1.86)
 
 [node name="penalty" type="HSlider" parent="Control"]
+layout_mode = 0
 offset_left = 20.24
 offset_top = 421.48
 offset_right = 317.51
@@ -156,6 +160,7 @@ scale = Vector2(1.51, 1.51)
 text = "Penalty"
 
 [node name="val" type="Label" parent="Control/penalty"]
+layout_mode = 0
 offset_left = 309.68
 offset_top = -14.07
 offset_right = 349.68
@@ -163,6 +168,7 @@ offset_bottom = 8.93
 scale = Vector2(1.86, 1.86)
 
 [node name="exploration" type="HSlider" parent="Control"]
+layout_mode = 0
 offset_left = 20.24
 offset_top = 550.83
 offset_right = 317.51
@@ -179,6 +185,7 @@ scale = Vector2(1.51, 1.51)
 text = "Exploration Variance"
 
 [node name="val" type="Label" parent="Control/exploration"]
+layout_mode = 0
 offset_left = 309.68
 offset_top = -14.07
 offset_right = 349.68
@@ -196,6 +203,7 @@ scale = Vector2(1.65, 1.65)
 text = "0"
 
 [node name="neg_score" type="Label" parent="Control"]
+layout_mode = 0
 offset_left = 302.09
 offset_top = 54.45
 offset_right = 342.21
