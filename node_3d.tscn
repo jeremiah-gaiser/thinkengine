@@ -15,7 +15,7 @@ light_volumetric_fog_energy = 10.222
 light_angular_distance = 30.63
 
 [node name="0" type="Camera3D" parent="."]
-transform = Transform3D(0.731354, -0.309621, 0.607664, -7.78943e-08, -0.891006, -0.45399, 0.681998, 0.332028, -0.65164, 1.12, -0.02, -0.96)
+transform = Transform3D(0.731354, -0.309621, 0.607664, -7.78943e-08, -0.891006, -0.45399, 0.681998, 0.332028, -0.65164, 0.55, -0.02, -0.59)
 h_offset = 0.27
 v_offset = 0.07
 doppler_tracking = 1
@@ -89,7 +89,7 @@ offset_left = 20.24
 offset_top = 245.34
 offset_right = 317.51
 offset_bottom = 261.34
-max_value = 0.1
+max_value = 1.0
 step = 0.001
 
 [node name="Label" type="Label" parent="Control/r_step"]
@@ -209,6 +209,14 @@ offset_top = 54.45
 offset_right = 342.21
 offset_bottom = 80.45
 scale = Vector2(1.65, 1.65)
+text = "0"
+
+[node name="odds_score" type="Label" parent="Control"]
+offset_left = 302.09
+offset_top = 97.14
+offset_right = 342.21
+offset_bottom = 128.25
+scale = Vector2(2, 2)
 text = "0"
 
 [connection signal="pressed" from="Control/ResetStimulus" to="." method="_on_button_pressed"]

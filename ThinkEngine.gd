@@ -32,8 +32,6 @@ var report_data = {
 	'threshold': '',
 	'score': [],
 	'explore_variance': '',
-	'pos_scores': [],
-	'neg_scores': [],
 	'rp_values': '',
 }
 
@@ -42,8 +40,8 @@ var logged_hyperparams = false
 var horizontal_stimulus = false
 var stimulus_idx = 0
 
-var pos_scores: int
-var neg_scores: int
+var pos_scores: float
+var neg_scores: float
 
 var frame_number: int
 
@@ -56,7 +54,8 @@ var refractory_step: float
 
 var variables_buffer: RID
 var excit_inhib_buffer: RID
-var pr_ratio = 8
+var pr_ratio = 5
+var bg_prob: float
 
 var w: int
 var h: int
@@ -66,6 +65,10 @@ var connection_count: int = 27
 var connection_u = 0.1
 var connection_s = 0.5
 var threshold: float
+
+var odds_score = 0
+var success_ticker = 0
+
 
 var explore_u = 0 
 var explore_s: float
@@ -111,8 +114,6 @@ func log_data():
 	
 	report_data['frame'].append(frame_number)
 	report_data['score'].append(score)
-	report_data['pos_scores'].append(pos_scores)
-	report_data['neg_scores'].append(neg_scores)
 	
 func initialize_connections(a):
 	var rand_con: float
@@ -128,8 +129,10 @@ func initialize_connections(a):
 					
 func get_score():
 	score = 0
+	
 	pos_scores = 0
 	neg_scores = 0
+	
 	var cell_score: float
 	
 	for i in range(len(response_values)):
@@ -137,12 +140,24 @@ func get_score():
 			response_values[i] = 0
 			
 		cell_score = response_values[i] * rp_values[i]
-		score += cell_score
+#		score += cell_score
 		
 		if cell_score > 0:
-			pos_scores += 1
+			pos_scores += cell_score
 		if cell_score < 0:
-			neg_scores += 1
+			neg_scores += -cell_score
+			
+	if pos_scores == 0:
+		score = 0	
+		return
+	
+	if neg_scores == 0:
+		score = 1 / bg_prob
+		return
+	
+	score = (pos_scores / (pos_scores + neg_scores)) / bg_prob 
+	
+		
 
 func collect_uniforms(buffer_a):
 	var output_a = []
@@ -183,8 +198,9 @@ func rf(a,b):
 	return false
 	
 func set_reward(conditions: Array):	
-	rp_values.fill(-1*pr_ratio)
+	rp_values.fill(-1)
 	var idx: int
+	var reward_cell_count = 0
 	
 	for i in range(w):
 		if skip_idx(i, conditions[0]):
@@ -193,6 +209,9 @@ func set_reward(conditions: Array):
 			if skip_idx(j, conditions[1]):
 				continue 	
 			rp_values[i*h + j] = 1
+			reward_cell_count += 1
+	
+	bg_prob = float(reward_cell_count) / float(len(response_values))
 	
 func reward_left():
 	set_reward([[[lt, w/2]], []])
@@ -231,7 +250,6 @@ func update_exploration(new_val):
 	
 func generate_line():
 	stimulus_values.fill(0)
-	print(stimulus_idx)
 	
 	if horizontal_stimulus:
 		for i in range(w):
@@ -288,8 +306,13 @@ func reward_match():
 #					rp_values[i*h + j] = 1
 	
 func explore():
+	var explore_mod = 1
+	
+	if score > 1:
+		explore_mod = 0.25*(1/bg_prob - score)/(1/bg_prob) 
+	
 	for i in range(len(connections_values)): 
-		connections_values[i] += randfn(explore_u, explore_s)
+		connections_values[i] += randfn(explore_u, explore_s*explore_mod)
 	
 	update_buffer(generate_buffer(connections_values), 2)
 	
@@ -352,7 +375,7 @@ func step(frame: int):
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
-	rd.compute_list_dispatch(compute_list, 2, 2, 2)
+	rd.compute_list_dispatch(compute_list, 1, 1, 1)
 	rd.compute_list_end()
 	# Submit to GPU and wait for sync
 	rd.submit()
@@ -360,23 +383,26 @@ func step(frame: int):
 	
 	get_response()
 	
-	if frame % 10 == 0:
+	if frame % 5 == 0:
 		get_score()
+		print(score, ' ', bg_prob)
 	
 		if score == 0:
 			explore()
 
-		if score > 0:
+		if score > 1:
 			scale_connections(1 + reward)
+			explore()
 
-		if score < 0:
+		if score < 1:
 			scale_connections(1 - penalty)
 			explore()
 			
 	if frame % 50 == 0:
 		log_data()
 	
-	jitter_stimulus()
+#	if frame % 25 == 0:
+#		jitter_stimulus()
 	
 func get_response():
 	output = get_spike_state()
