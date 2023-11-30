@@ -1,6 +1,6 @@
 extends Node3D
 
-var grid_size: Vector3 = Vector3(10, 10, 10) 
+var grid_size: Vector3 = Vector3(3, 3, 3) 
 var voxel_size: float = 0.05
 var multi_mesh: MultiMesh
 var multi_mesh_instance: MultiMeshInstance3D
@@ -81,9 +81,10 @@ func _process(d):
 	
 	think_engine.step(frame_count)
 	update_cells(think_engine.get_spike_state())
-	pos_neg = think_engine.get_pos_neg_scores()
-	$Control/pos_score.text = pos_neg[0]
-	$Control/neg_score.text = pos_neg[1]
+#	pos_neg = think_engine.get_pos_neg_scores()
+#	$Control/pos_score.text = pos_neg[0]
+#	$Control/neg_score.text = pos_neg[1]
+	$Control/odds_score.text = think_engine.return_score()
 
 func load_ui_state():
 	var file = FileAccess.open("ui_state.json", FileAccess.READ)

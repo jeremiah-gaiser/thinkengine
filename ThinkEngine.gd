@@ -1,6 +1,6 @@
 class_name ThinkEngine extends Node3D
 
-var report_path = 'exp_data/exp3/e3_20x20x20_jitter_trial'
+var report_path = 'exp_data/final/exp1/e1_trial'
 
 var rd: RenderingDevice
 var potential_buffer: RID
@@ -223,7 +223,7 @@ func randomize_stimulus():
 #	task_idx = randi()%len(task)
 	task_idx += 1
 	
-	for f in task[task_idx % 2]: 
+	for f in task[task_idx % len(task)]: 
 		f.call()
 		
 #	stimulus_buffer = generate_buffer(stimulus_values)
@@ -363,10 +363,10 @@ func _init(width: int,
 	uniform_set = rd.uniform_set_create(collect_uniforms(uniform_array), shader, 0)
 	pipeline = rd.compute_pipeline_create(shader)
 	
-	task = [[generate_random_vertical, reward_left], 
-			[generate_random_horizontal, reward_right]]
-	
-#	task = [[stim_random_cell, reward_match]]
+#	task = [[generate_random_vertical, reward_left], 
+#			[generate_random_horizontal, reward_right]]
+#
+	task = [[stim_random_cell, reward_match]]
 	randomize_stimulus()
 
 func step(frame: int):	
@@ -426,6 +426,9 @@ func get_spike_state():
 
 func get_pos_neg_scores():
 	return [str(pos_scores), str(neg_scores)]
+	
+func return_score():
+	return str(score)
 
 func dump_log():
 	var report_idx = 1
