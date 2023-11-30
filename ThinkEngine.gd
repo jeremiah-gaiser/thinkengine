@@ -1,6 +1,6 @@
 class_name ThinkEngine extends Node3D
 
-var report_path = 'exp_data/final/exp1/e1_trial'
+var report_path = 'exp_data/final/exp1_2/e1_trial'
 
 var rd: RenderingDevice
 var potential_buffer: RID
@@ -32,9 +32,9 @@ var report_data = {
 	'threshold': '',
 	'score': [],
 	'explore_variance': '',
-	'rp_values': '',
 }
 
+var bg_mod: float = 2
 var logged_hyperparams = false
 
 var horizontal_stimulus = false
@@ -104,8 +104,8 @@ func initialize_variables_buffer(a):
 
 func log_data():
 	if !logged_hyperparams:
-		var k = ['threshold', 'reward', 'penalty', 'refractory_step', 'rp_values', 'explore_variance']
-		var v = [threshold, reward, penalty, refractory_step, rp_values, explore_s]
+		var k = ['threshold', 'reward', 'penalty', 'refractory_step', 'explore_variance']
+		var v = [threshold, reward, penalty, refractory_step, explore_s]
 		
 		for i in range(len(k)):
 			report_data[k[i]] = v[i]
@@ -147,6 +147,7 @@ func get_score():
 		if cell_score < 0:
 			neg_scores += -cell_score
 			
+	
 	if pos_scores == 0:
 		score = 0	
 		return
@@ -211,13 +212,14 @@ func set_reward(conditions: Array):
 			rp_values[i*h + j] = 1
 			reward_cell_count += 1
 	
-	bg_prob = float(reward_cell_count) / float(len(response_values))
+	bg_prob = (float(reward_cell_count) / float(len(response_values)))*bg_mod
 	
 func reward_left():
 	set_reward([[[lt, w/2]], []])
 					
 func reward_right():
 	set_reward([[[gt, w/2]], []])
+
 			
 func randomize_stimulus():
 #	task_idx = randi()%len(task)
@@ -274,6 +276,8 @@ func generate_random_vertical():
 func stim_random_cell():
 	stimulus_values.fill(0)
 	stimulus_values[randi()%len(stimulus_values)] = 2
+	stimulus_buffer = generate_buffer(stimulus_values)
+	update_buffer(stimulus_buffer, 6)
 
 func jitter_stimulus():
 	var stim_idx_delta = randi()%2
@@ -284,12 +288,21 @@ func jitter_stimulus():
 	stimulus_idx += stim_idx_delta
 	generate_line()
 	
-
 func reward_match():
-	rp_values.fill(-1*pr_ratio)
-	for i in range(len(rp_values)):
+	rp_values.fill(-1)
+	var idx: int
+	var reward_cell_count = 0
+	
+	for i in range(len(stimulus_values)):
 		if stimulus_values[i] > 0:
+			reward_cell_count += 1
 			rp_values[i] = 1
+	
+	bg_prob = (float(reward_cell_count) / float(len(response_values)))*bg_mod
+#	rp_values.fill(-1)
+#	for i in range(len(rp_values)):
+#		if stimulus_values[i] > 0:
+#			rp_values[i] = 1
 #	var stim_i = 0
 #	var stim_j = 0
 #
@@ -385,7 +398,6 @@ func step(frame: int):
 	
 	if frame % 5 == 0:
 		get_score()
-		print(score, ' ', bg_prob)
 	
 		if score == 0:
 			explore()

@@ -77,8 +77,8 @@ void main() {
             spike[idx] = 0;
         } else {
             in_refractory = true;
-            spike[idx] -= spike[idx]*r_step;
-            // spike[idx] -= r_step;
+            // spike[idx] -= spike[idx]*r_step;
+            spike[idx] -= r_step;
         }
 
         for(int i=-1; i <2; i++)
